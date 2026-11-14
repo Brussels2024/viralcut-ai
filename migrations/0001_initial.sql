@@ -211,17 +211,35 @@ ALTER TABLE clip_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rendered_clips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_events ENABLE ROW LEVEL SECURITY;
 
+-- SECURITY DEFINER avoids recursive RLS evaluation when workspace policies
+-- need to verify membership in workspace_members.
+CREATE FUNCTION public.viralcut_is_workspace_member(p_workspace_id uuid, p_user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $
+  SELECT EXISTS (
+    SELECT 1 FROM workspace_members
+    WHERE workspace_id = p_workspace_id AND user_id = p_user_id
+  );
+$;
+
+GRANT EXECUTE ON FUNCTION public.viralcut_is_workspace_member(uuid, uuid) TO PUBLIC;
+
 CREATE POLICY app_users_self_policy ON app_users
   USING (id = nullif(current_setting('app.user_id', true), '')::uuid)
   WITH CHECK (id = nullif(current_setting('app.user_id', true), '')::uuid);
 
 CREATE POLICY workspaces_member_read_policy ON workspaces
   FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM workspace_members wm
-    WHERE wm.workspace_id = workspaces.id
-      AND wm.user_id = nullif(current_setting('app.user_id', true), '')::uuid
-  ));
+  USING (
+    owner_user_id = nullif(current_setting('app.user_id', true), '')::uuid
+    OR public.viralcut_is_workspace_member(
+      id, nullif(current_setting('app.user_id', true), '')::uuid
+    )
+  );
 CREATE POLICY workspaces_owner_insert_policy ON workspaces
   FOR INSERT
   WITH CHECK (owner_user_id = nullif(current_setting('app.user_id', true), '')::uuid);
