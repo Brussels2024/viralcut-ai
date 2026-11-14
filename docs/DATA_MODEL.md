@@ -29,3 +29,11 @@ Workspace-owned tables have PostgreSQL row-level security enabled. Every server-
 Use a database role that does not own the tables and does not have `BYPASSRLS`. Never accept a workspace ID from an untrusted browser request without checking membership. Do not use a pooled connection's session-level setting; use transaction-local state.
 
 The migration deliberately does not create an authentication provider, database connection, or credentials. Those are separate integration steps. Do not run this migration against production until the database provider and migration workflow are configured and a backup/restore path exists.
+
+## Server-side database access
+
+The server-only PostgreSQL client is in `lib/db/client.ts`. It reads `DATABASE_URL`, uses a single connection per serverless instance, disables prepared statements for pooler compatibility, and never exposes connection details to the browser.
+
+Use `listUserWorkspaces(userId)` to resolve the signed-in user's workspaces. Use `withWorkspaceTransaction(userId, workspaceId, callback)` for tenant data. The helper verifies membership before setting the transaction-local RLS workspace context. Only pass the authenticated user ID from the trusted session layer; never trust a user ID supplied by the browser.
+
+The health endpoint's `capabilities.database` field reports whether a connection string is configured; it is not a live connectivity check.
