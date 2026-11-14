@@ -19,11 +19,12 @@ The initial PostgreSQL schema is in `migrations/0001_initial.sql`.
 
 Workspace-owned tables have PostgreSQL row-level security enabled. Every server-side database transaction must:
 
-1. Authenticate the user and resolve their workspace membership.
-2. Start a database transaction.
-3. Set the verified workspace ID using transaction-local context, e.g. `SELECT set_config('app.workspace_id', $1, true)`.
-4. Perform all tenant queries inside that same transaction.
-5. Commit or roll back before returning the response.
+1. Authenticate the user and start a database transaction.
+2. Set the authenticated user ID using transaction-local context, e.g. `SELECT set_config('app.user_id', $1, true)`.
+3. Read only that user's membership rows from `workspace_members` to resolve the workspace.
+4. Set the verified workspace ID using `SELECT set_config('app.workspace_id', $1, true)`.
+5. Perform tenant queries inside that same transaction.
+6. Commit or roll back before returning the response.
 
 Use a database role that does not own the tables and does not have `BYPASSRLS`. Never accept a workspace ID from an untrusted browser request without checking membership. Do not use a pooled connection's session-level setting; use transaction-local state.
 
