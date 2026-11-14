@@ -53,7 +53,15 @@ export async function POST(request: Request) {
     );
   }
 
-  if (parsed.data.videoDuration && parsed.data.segments.some((segment) => segment.end > parsed.data.videoDuration!)) {\n    return NextResponse.json(\n      { error: "Há segmentos que ultrapassam a duração informada do vídeo." },\n      { status: 400 }\n    );\n  }\n\n  const totalCharacters = parsed.data.segments.reduce(
+  const { videoDuration, segments } = parsed.data;
+  if (videoDuration && segments.some((segment) => segment.end > videoDuration)) {
+    return NextResponse.json(
+      { error: "Há segmentos que ultrapassam a duração informada do vídeo." },
+      { status: 400 }
+    );
+  }
+
+  const totalCharacters = segments.reduce(
     (total, segment) => total + segment.text.length,
     0
   );
@@ -65,10 +73,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await analyzeTranscriptMoments(
-      parsed.data.segments,
-      parsed.data.videoDuration
-    );
+    const result = await analyzeTranscriptMoments(segments, videoDuration);
 
     return NextResponse.json({
       status: "completed",
