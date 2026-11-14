@@ -9,13 +9,18 @@ export async function GET() {
     process.env.R2_SECRET_ACCESS_KEY &&
     process.env.R2_BUCKET_NAME
   );
+  const aiGatewayConfigured = Boolean(
+    process.env.AI_GATEWAY_API_KEY || process.env.VERCEL
+  );
 
   return NextResponse.json({
     name: "ViralCut AI API",
     status: "ok",
     capabilities: {
       videoStorage: storageConfigured,
-      videoAnalysis: false,
+      aiGateway: aiGatewayConfigured,
+      transcriptAnalysis: true,
+      videoTranscription: false,
       liveIngestion: false,
       clipRendering: false
     },
