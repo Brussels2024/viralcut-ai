@@ -9,6 +9,7 @@ export async function GET() {
     process.env.R2_SECRET_ACCESS_KEY &&
     process.env.R2_BUCKET_NAME
   );
+  const uploadSigningConfigured = storageConfigured && Boolean(process.env.VIRALCUT_UPLOAD_API_KEY);
   const aiGatewayConfigured = Boolean(
     process.env.AI_GATEWAY_API_KEY || process.env.VERCEL
   );
@@ -18,6 +19,7 @@ export async function GET() {
     status: "ok",
     capabilities: {
       videoStorage: storageConfigured,
+      uploadSigning: uploadSigningConfigured,
       aiGateway: aiGatewayConfigured,
       transcriptAnalysis: aiGatewayConfigured && Boolean(process.env.VIRALCUT_INTERNAL_API_KEY),
       videoTranscription: false,
