@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ArrowUpRight,
   AudioLines,
@@ -46,12 +47,12 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
-        <a href="/" className="flex items-center gap-3" aria-label="ViralCut AI início">
+        <Link href="/" className="flex items-center gap-3" aria-label="ViralCut AI início">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-300/20 bg-violet-500/15 text-violet-200">
             <Scissors size={21} />
           </span>
           <span className="text-lg font-semibold tracking-tight">ViralCut <span className="text-violet-300">AI</span></span>
-        </a>
+        </Link>
         <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-400 sm:flex">
           <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]" />
           Workspace de criação
