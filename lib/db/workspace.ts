@@ -17,7 +17,7 @@ export async function withWorkspaceTransaction<T>(
   }
 
   const database = getDatabase();
-  return database.begin(async (transaction) => {
+  const result = await database.begin(async (transaction) => {
     await transaction`SELECT set_config('app.user_id', ${userId}, true)`;
 
     const memberships = await transaction<WorkspaceMembership[]>`
@@ -33,6 +33,8 @@ export async function withWorkspaceTransaction<T>(
     await transaction`SELECT set_config('app.workspace_id', ${workspaceId}, true)`;
     return operation(transaction);
   });
+
+  return result as T;
 }
 
 /** Resolve only workspaces where the authenticated user has a membership. */
