@@ -144,6 +144,51 @@ CREATE TABLE webhook_events (
   CONSTRAINT webhook_provider_event_unique UNIQUE (provider, provider_event_id)
 );
 
+
+-- Composite tenant-aware foreign keys prevent a row in one workspace from
+-- referencing a project, asset, job, or candidate owned by another workspace.
+ALTER TABLE media_projects
+  ADD CONSTRAINT media_projects_id_workspace_unique UNIQUE (id, workspace_id);
+ALTER TABLE media_assets
+  ADD CONSTRAINT media_assets_id_workspace_unique UNIQUE (id, workspace_id);
+ALTER TABLE analysis_jobs
+  ADD CONSTRAINT analysis_jobs_id_workspace_unique UNIQUE (id, workspace_id);
+ALTER TABLE clip_candidates
+  ADD CONSTRAINT clip_candidates_id_workspace_unique UNIQUE (id, workspace_id);
+
+ALTER TABLE media_assets
+  ADD CONSTRAINT media_assets_project_workspace_fk
+  FOREIGN KEY (project_id, workspace_id)
+  REFERENCES media_projects(id, workspace_id) ON DELETE CASCADE;
+ALTER TABLE analysis_jobs
+  ADD CONSTRAINT analysis_jobs_project_workspace_fk
+  FOREIGN KEY (project_id, workspace_id)
+  REFERENCES media_projects(id, workspace_id) ON DELETE CASCADE;
+ALTER TABLE transcript_segments
+  ADD CONSTRAINT transcript_segments_project_workspace_fk
+  FOREIGN KEY (project_id, workspace_id)
+  REFERENCES media_projects(id, workspace_id) ON DELETE CASCADE;
+ALTER TABLE clip_candidates
+  ADD CONSTRAINT clip_candidates_project_workspace_fk
+  FOREIGN KEY (project_id, workspace_id)
+  REFERENCES media_projects(id, workspace_id) ON DELETE CASCADE;
+ALTER TABLE clip_candidates
+  ADD CONSTRAINT clip_candidates_job_workspace_fk
+  FOREIGN KEY (analysis_job_id, workspace_id)
+  REFERENCES analysis_jobs(id, workspace_id) ON DELETE SET NULL;
+ALTER TABLE rendered_clips
+  ADD CONSTRAINT rendered_clips_project_workspace_fk
+  FOREIGN KEY (project_id, workspace_id)
+  REFERENCES media_projects(id, workspace_id) ON DELETE CASCADE;
+ALTER TABLE rendered_clips
+  ADD CONSTRAINT rendered_clips_candidate_workspace_fk
+  FOREIGN KEY (candidate_id, workspace_id)
+  REFERENCES clip_candidates(id, workspace_id) ON DELETE CASCADE;
+ALTER TABLE rendered_clips
+  ADD CONSTRAINT rendered_clips_asset_workspace_fk
+  FOREIGN KEY (asset_id, workspace_id)
+  REFERENCES media_assets(id, workspace_id) ON DELETE SET NULL;
+
 CREATE INDEX workspace_members_user_idx ON workspace_members(user_id);
 CREATE INDEX media_projects_workspace_created_idx ON media_projects(workspace_id, created_at DESC);
 CREATE INDEX media_assets_project_idx ON media_assets(project_id);
