@@ -19,7 +19,7 @@ export async function GET() {
     capabilities: {
       videoStorage: storageConfigured,
       aiGateway: aiGatewayConfigured,
-      transcriptAnalysis: true,
+      transcriptAnalysis: aiGatewayConfigured && Boolean(process.env.VIRALCUT_INTERNAL_API_KEY),
       videoTranscription: false,
       liveIngestion: false,
       clipRendering: false
