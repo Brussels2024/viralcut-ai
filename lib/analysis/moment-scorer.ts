@@ -133,8 +133,6 @@ export function findBestMoments(
   }));
 
   const candidates: ScoredMoment[] = [];
-  const step = Math.max(5, Math.min(15, Math.floor(config.minDuration / 6)));
-
   for (const first of valid) {
     for (let duration = config.minDuration; duration <= config.maxDuration; duration += 5) {
       const start = first.start;
