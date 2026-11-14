@@ -164,9 +164,9 @@ ALTER TABLE clip_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rendered_clips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY workspace_members_tenant_policy ON workspace_members
-  USING (workspace_id = nullif(current_setting('app.workspace_id', true), '')::uuid)
-  WITH CHECK (workspace_id = nullif(current_setting('app.workspace_id', true), '')::uuid);
+CREATE POLICY workspace_members_self_read_policy ON workspace_members
+  FOR SELECT
+  USING (user_id = nullif(current_setting('app.user_id', true), '')::uuid);
 CREATE POLICY media_projects_tenant_policy ON media_projects
   USING (workspace_id = nullif(current_setting('app.workspace_id', true), '')::uuid)
   WITH CHECK (workspace_id = nullif(current_setting('app.workspace_id', true), '')::uuid);
