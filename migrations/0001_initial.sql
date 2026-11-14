@@ -175,7 +175,7 @@ ALTER TABLE clip_candidates
 ALTER TABLE clip_candidates
   ADD CONSTRAINT clip_candidates_job_workspace_fk
   FOREIGN KEY (analysis_job_id, workspace_id)
-  REFERENCES analysis_jobs(id, workspace_id) ON DELETE SET NULL;
+  REFERENCES analysis_jobs(id, workspace_id) ON DELETE RESTRICT;
 ALTER TABLE rendered_clips
   ADD CONSTRAINT rendered_clips_project_workspace_fk
   FOREIGN KEY (project_id, workspace_id)
@@ -187,7 +187,7 @@ ALTER TABLE rendered_clips
 ALTER TABLE rendered_clips
   ADD CONSTRAINT rendered_clips_asset_workspace_fk
   FOREIGN KEY (asset_id, workspace_id)
-  REFERENCES media_assets(id, workspace_id) ON DELETE SET NULL;
+  REFERENCES media_assets(id, workspace_id) ON DELETE RESTRICT;
 
 CREATE INDEX workspace_members_user_idx ON workspace_members(user_id);
 CREATE INDEX media_projects_workspace_created_idx ON media_projects(workspace_id, created_at DESC);
