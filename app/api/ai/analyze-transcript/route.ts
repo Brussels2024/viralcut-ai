@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const totalCharacters = parsed.data.segments.reduce(
+  if (parsed.data.videoDuration && parsed.data.segments.some((segment) => segment.end > parsed.data.videoDuration!)) {\n    return NextResponse.json(\n      { error: "Há segmentos que ultrapassam a duração informada do vídeo." },\n      { status: 400 }\n    );\n  }\n\n  const totalCharacters = parsed.data.segments.reduce(
     (total, segment) => total + segment.text.length,
     0
   );
