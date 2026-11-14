@@ -27,8 +27,8 @@ export type AiMoment = z.infer<typeof aiMomentSchema>;
 function parseModelJson(text: string) {
   const cleaned = text
     .trim()
-    .replace(/^\`\`\`(?:json)?\\s*/i, "")
-    .replace(/\\s*\`\`\`$/, "");
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "");
   return aiResponseSchema.parse(JSON.parse(cleaned));
 }
 
