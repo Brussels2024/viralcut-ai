@@ -19,6 +19,10 @@ npm run dev
 
 Abra http://localhost:3000.
 
+## AI transcript analysis
+
+The first AI-backed analysis endpoint is available at `POST /api/ai/analyze-transcript`. It uses the Vercel AI SDK and AI Gateway to rank timestamped transcript moments, then returns validated 60–90 second candidates with publishing metadata. See [`docs/AI_ANALYSIS.md`](docs/AI_ANALYSIS.md) for setup, authentication, and current limitations. Video transcription and rendering are not connected yet.
+
 ## Roadmap
 
 1. Estrutura visual e experiência inicial.
