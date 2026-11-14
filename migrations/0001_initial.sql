@@ -213,7 +213,7 @@ ALTER TABLE usage_events ENABLE ROW LEVEL SECURITY;
 
 -- SECURITY DEFINER avoids recursive RLS evaluation when workspace policies
 -- need to verify membership in workspace_members.
-CREATE FUNCTION public.viralcut_is_workspace_member(p_workspace_id uuid, p_user_id uuid)
+CREATE FUNCTION public.viralcut_is_workspace_member(p_workspace_id uuid)
 RETURNS boolean
 LANGUAGE sql
 STABLE
@@ -222,11 +222,12 @@ SET search_path = public
 AS $
   SELECT EXISTS (
     SELECT 1 FROM workspace_members
-    WHERE workspace_id = p_workspace_id AND user_id = p_user_id
+    WHERE workspace_id = p_workspace_id
+      AND user_id = nullif(current_setting('app.user_id', true), '')::uuid
   );
 $;
 
-GRANT EXECUTE ON FUNCTION public.viralcut_is_workspace_member(uuid, uuid) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.viralcut_is_workspace_member(uuid) TO PUBLIC;
 
 CREATE POLICY app_users_self_policy ON app_users
   USING (id = nullif(current_setting('app.user_id', true), '')::uuid)
@@ -236,9 +237,7 @@ CREATE POLICY workspaces_member_read_policy ON workspaces
   FOR SELECT
   USING (
     owner_user_id = nullif(current_setting('app.user_id', true), '')::uuid
-    OR public.viralcut_is_workspace_member(
-      id, nullif(current_setting('app.user_id', true), '')::uuid
-    )
+    OR public.viralcut_is_workspace_member(id)
   );
 CREATE POLICY workspaces_owner_insert_policy ON workspaces
   FOR INSERT
