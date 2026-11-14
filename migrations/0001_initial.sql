@@ -219,13 +219,13 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $function$
   SELECT EXISTS (
     SELECT 1 FROM workspace_members
     WHERE workspace_id = p_workspace_id
       AND user_id = nullif(current_setting('app.user_id', true), '')::uuid
   );
-$;
+$function$;
 
 GRANT EXECUTE ON FUNCTION public.viralcut_is_workspace_member(uuid) TO PUBLIC;
 
