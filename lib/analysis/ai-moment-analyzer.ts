@@ -27,8 +27,8 @@ export type AiMoment = z.infer<typeof aiMomentSchema>;
 function parseModelJson(text: string) {
   const cleaned = text
     .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/, "");
+    .replace(/^\`\`\`(?:json)?\\s*/i, "")
+    .replace(/\\s*\`\`\`$/, "");
   return aiResponseSchema.parse(JSON.parse(cleaned));
 }
 
@@ -61,11 +61,12 @@ export async function analyzeTranscriptMoments(
 ) {
   const transcript = segments
     .map((segment) => `[${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s] ${segment.text}`)
-    .join("\n");
+    .join("\\n");
 
-  const model = process.env.AI_GATEWAY_MODEL || "google/gemini-3.1-flash-lite";
+  const model = process.env.AI_GATEWAY_MODEL || "openai/gpt-6.1-sol";
   const result = await generateText({
     model,
+    reasoning: "high",
     temperature: 0.2,
     maxOutputTokens: 2600,
     maxRetries: 1,
