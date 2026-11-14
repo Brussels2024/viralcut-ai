@@ -200,6 +200,8 @@ CREATE INDEX usage_events_workspace_created_idx ON usage_events(workspace_id, cr
 
 -- Tenant isolation: the API must set app.workspace_id with SET LOCAL for every
 -- transaction that accesses workspace-owned rows. Use a non-owner DB role.
+ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE media_projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE media_assets ENABLE ROW LEVEL SECURITY;
@@ -209,9 +211,43 @@ ALTER TABLE clip_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rendered_clips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_events ENABLE ROW LEVEL SECURITY;
 
+CREATE POLICY app_users_self_policy ON app_users
+  USING (id = nullif(current_setting('app.user_id', true), '')::uuid)
+  WITH CHECK (id = nullif(current_setting('app.user_id', true), '')::uuid);
+
+CREATE POLICY workspaces_member_read_policy ON workspaces
+  FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM workspace_members wm
+    WHERE wm.workspace_id = workspaces.id
+      AND wm.user_id = nullif(current_setting('app.user_id', true), '')::uuid
+  ));
+CREATE POLICY workspaces_owner_insert_policy ON workspaces
+  FOR INSERT
+  WITH CHECK (owner_user_id = nullif(current_setting('app.user_id', true), '')::uuid);
+CREATE POLICY workspaces_owner_update_policy ON workspaces
+  FOR UPDATE
+  USING (owner_user_id = nullif(current_setting('app.user_id', true), '')::uuid)
+  WITH CHECK (owner_user_id = nullif(current_setting('app.user_id', true), '')::uuid);
+CREATE POLICY workspaces_owner_delete_policy ON workspaces
+  FOR DELETE
+  USING (owner_user_id = nullif(current_setting('app.user_id', true), '')::uuid);
+
 CREATE POLICY workspace_members_self_read_policy ON workspace_members
   FOR SELECT
   USING (user_id = nullif(current_setting('app.user_id', true), '')::uuid);
+CREATE POLICY workspace_members_owner_insert_policy ON workspace_members
+  FOR INSERT
+  WITH CHECK (
+    user_id = nullif(current_setting('app.user_id', true), '')::uuid
+    AND role = 'owner'
+    AND EXISTS (
+      SELECT 1 FROM workspaces w
+      WHERE w.id = workspace_members.workspace_id
+        AND w.owner_user_id = nullif(current_setting('app.user_id', true), '')::uuid
+    )
+  );
+
 CREATE POLICY media_projects_tenant_policy ON media_projects
   USING (workspace_id = nullif(current_setting('app.workspace_id', true), '')::uuid)
   WITH CHECK (workspace_id = nullif(current_setting('app.workspace_id', true), '')::uuid);
