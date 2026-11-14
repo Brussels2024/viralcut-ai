@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 export async function GET() {
+  const databaseConfigured = Boolean(process.env.DATABASE_URL);
   const storageConfigured = Boolean(
     process.env.R2_ACCOUNT_ID &&
     process.env.R2_ACCESS_KEY_ID &&
@@ -18,6 +19,7 @@ export async function GET() {
     name: "ViralCut AI API",
     status: "ok",
     capabilities: {
+      database: databaseConfigured,
       videoStorage: storageConfigured,
       uploadSigning: uploadSigningConfigured,
       aiGateway: aiGatewayConfigured,
