@@ -17,7 +17,8 @@
     "@aws-sdk/client-s3": "^3.850.0",
     "@aws-sdk/s3-request-presigner": "^3.850.0",
     "zod": "^4.1.8",
-    "ai": "^7.0.173"
+    "ai": "^7.0.173",
+    "postgres": "^3.4.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
