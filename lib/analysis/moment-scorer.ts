@@ -114,13 +114,33 @@ export function findBestMoments(
   segments: TranscriptSegment[],
   options: ScoringOptions = {}
 ): ScoredMoment[] {
-  const config = { ...DEFAULTS, ...options };
+  const requested = { ...DEFAULTS, ...options };
+  const minDuration = Number.isFinite(requested.minDuration)
+    ? Math.max(1, Math.floor(requested.minDuration))
+    : DEFAULTS.minDuration;
+  const maxDuration = Number.isFinite(requested.maxDuration)
+    ? Math.max(minDuration, Math.floor(requested.maxDuration))
+    : Math.max(minDuration, DEFAULTS.maxDuration);
+  const config: Required<ScoringOptions> = {
+    minDuration,
+    maxDuration,
+    maxResults: Number.isFinite(requested.maxResults)
+      ? Math.max(0, Math.floor(requested.maxResults))
+      : DEFAULTS.maxResults,
+    minGapSeconds: Number.isFinite(requested.minGapSeconds)
+      ? Math.max(0, requested.minGapSeconds)
+      : DEFAULTS.minGapSeconds
+  };
+
+  if (config.maxResults === 0) return [];
+
   const valid = segments
     .filter((segment) =>
       Number.isFinite(segment.start) &&
       Number.isFinite(segment.end) &&
       segment.start >= 0 &&
       segment.end > segment.start &&
+      typeof segment.text === "string" &&
       segment.text.trim().length > 0
     )
     .sort((a, b) => a.start - b.start);
@@ -142,17 +162,31 @@ export function findBestMoments(
       );
 
       if (!window.length) continue;
-      const coveredSeconds = window.reduce((sum, item) => {
-        const overlap = Math.max(0, Math.min(item.segment.end, end) - Math.max(item.segment.start, start));
-        return sum + overlap;
-      }, 0);
+      const intervals = window
+        .map(({ segment }) => [
+          Math.max(segment.start, start),
+          Math.min(segment.end, end)
+        ] as const)
+        .sort((a, b) => a[0] - b[0]);
+
+      let coveredSeconds = 0;
+      let coveredUntil = start;
+      for (const [intervalStart, intervalEnd] of intervals) {
+        const uncoveredStart = Math.max(intervalStart, coveredUntil);
+        if (intervalEnd > uncoveredStart) coveredSeconds += intervalEnd - uncoveredStart;
+        coveredUntil = Math.max(coveredUntil, intervalEnd);
+      }
 
       if (coveredSeconds < duration * 0.35) continue;
 
-      const weightedScore = window.reduce((sum, item) => {
+      const weightedTotal = window.reduce((sum, item) => {
         const overlap = Math.max(0, Math.min(item.segment.end, end) - Math.max(item.segment.start, start));
         return sum + item.score * overlap;
-      }, 0) / Math.max(coveredSeconds, 1);
+      }, 0);
+      const totalOverlap = window.reduce((sum, item) => {
+        return sum + Math.max(0, Math.min(item.segment.end, end) - Math.max(item.segment.start, start));
+      }, 0);
+      const weightedScore = weightedTotal / Math.max(totalOverlap, 1);
 
       const peak = Math.max(...window.map((item) => item.score));
       const finalScore = Math.round(Math.min(1, weightedScore * 0.78 + peak * 0.22) * 100);
