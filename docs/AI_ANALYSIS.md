@@ -28,7 +28,7 @@ Request:
 }
 ```
 
-The route accepts 1–1,000 timestamped transcript segments and up to 60,000 transcript characters. It returns up to eight non-overlapping moments, each between 60 and 90 seconds, with an AI score, title, opening hook, description, hashtags, and reasons. It may return fewer than eight or none when the transcript does not contain enough strong moments.
+The route accepts 1–1,000 timestamped transcript segments and up to 60,000 transcript characters. It returns up to ten non-overlapping moments, each between 60 and 90 seconds, with an AI score, title, opening hook, description, hashtags, and reasons. It may return fewer than eight or none when the transcript does not contain enough strong moments.
 
 The model is instructed to use only transcript evidence. It must not invent chat activity, audience reactions, audio peaks, or emotions that were not supplied.
 
