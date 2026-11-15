@@ -57,9 +57,9 @@ export default function Home() {
           <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]" />
           Workspace de criação
         </div>
-        <button className="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white/5">
+        <Link href="/entrar" className="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white/5">
           Entrar
-        </button>
+        </Link>
       </header>
 
       <section className="grid-glow relative mx-auto max-w-7xl overflow-hidden px-5 pb-16 pt-12 sm:px-8 sm:pt-20">
