@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
-    "capture:live": "node workers/live-capture.mjs"
+    "capture:live": "node workers/live-capture.mjs",
+    "process:windows": "node workers/process-windows.mjs"
   },
   "dependencies": {
     "next": "^16.4.6",
