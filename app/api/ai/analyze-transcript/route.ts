@@ -11,7 +11,11 @@ const requestSchema = z.object({
   segments: z.array(z.object({
     start: z.number().finite().nonnegative(),
     end: z.number().finite().positive(),
-    text: z.string().trim().min(1).max(1_000)
+    text: z.string().trim().min(1).max(1_000),
+    audio: z.object({ energy: z.number().min(0).max(1).optional(), excitement: z.number().min(0).max(1).optional() }).optional(),
+    chat: z.object({ messagesPerMinute: z.number().nonnegative().optional(), uniqueChatters: z.number().nonnegative().optional(), emoteRatio: z.number().min(0).max(1).optional() }).optional(),
+    reactions: z.object({ laughter: z.number().min(0).max(1).optional(), applause: z.number().min(0).max(1).optional(), surprise: z.number().min(0).max(1).optional() }).optional(),
+    video: z.object({ sceneChange: z.number().min(0).max(1).optional() }).optional()
   }).refine((segment) => segment.end > segment.start, {
     message: "O fim do segmento precisa ser maior que o início."
   })).min(1).max(1_000)
