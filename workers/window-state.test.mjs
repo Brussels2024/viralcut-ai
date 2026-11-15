@@ -22,9 +22,13 @@ describe("durable live-window queue", () => {
   it("backs off after errors and eventually moves poison windows to dead", () => {
     const state = { version: 1, windows: {} };
     const name = "window-000002.mp4";
+    let now = 1_000;
     for (let attempt = 1; attempt <= 5; attempt++) {
-      expect(claimWindow(state, name, attempt * 1_000)).toBe(true);
-      failWindow(state, name, new Error("simulated failure"), attempt * 1_000);
+      expect(claimWindow(state, name, now)).toBe(true);
+      failWindow(state, name, new Error("simulated failure"), now);
+      now = state.windows[name].nextAttemptAt
+        ? Date.parse(state.windows[name].nextAttemptAt)
+        : now + 1_000;
     }
     expect(state.windows[name].status).toBe("dead");
     expect(state.windows[name].attempts).toBe(5);
