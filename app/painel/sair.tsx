@@ -1,0 +1,1 @@
+"use client";import{authClient}from"@/lib/auth-client";export default function Sair(){return <button onClick={()=>authClient.signOut({fetchOptions:{onSuccess:()=>window.location.assign("/entrar")}})} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Sair</button>}
