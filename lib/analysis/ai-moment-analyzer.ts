@@ -63,7 +63,7 @@ export async function analyzeTranscriptMoments(
     .map((segment) => `[${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s] ${segment.text}`)
     .join("\n");
 
-  const model = process.env.AI_GATEWAY_MODEL || "openai/gpt-6.1-sol";
+  const model = process.env.AI_GATEWAY_MODEL || "google/gemini-3.1-flash-lite";
   const result = await generateText({
     model,
     reasoning: "high",
