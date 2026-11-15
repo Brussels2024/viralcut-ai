@@ -23,6 +23,10 @@ Abra http://localhost:3000.
 
 The first AI-backed analysis endpoint is available at `POST /api/ai/analyze-transcript`. It uses the Vercel AI SDK and AI Gateway to rank timestamped transcript moments, then returns validated 60–90 second candidates with publishing metadata. See [`docs/AI_ANALYSIS.md`](docs/AI_ANALYSIS.md) for setup, authentication, and current limitations. Video transcription and rendering are not connected yet.
 
+## Live capture worker
+
+A persistent RTMP/RTMPS/SRT capture worker is available. It saves closed MP4 segments every 10 minutes by default. See [`docs/LIVE_CAPTURE.md`](docs/LIVE_CAPTURE.md). Run it with `npm run capture:live` after setting `LIVE_INPUT_URL` and `SESSION_ID`.
+
 ## Roadmap
 
 1. Estrutura visual e experiência inicial.
