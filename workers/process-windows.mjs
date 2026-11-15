@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { readFile, mkdir, rename, stat, writeFile } from "node:fs/promises";
+import { readFile, mkdir, stat, writeFile, rm } from "node:fs/promises";
+import { loadWindowState, saveWindowState, claimWindow, completeWindow, failWindow, windowQueueSummary } from "./window-state.mjs";
 import path from "node:path";
 import process from "node:process";
 
@@ -40,15 +41,6 @@ function run(command, args) {
     child.once("error", reject);
     child.once("close", code => code === 0 ? resolve(stdout.trim()) : reject(new Error(`${path.basename(command)} saiu com código ${code}: ${stderr.slice(-2500)}`)));
   });
-}
-async function loadState() {
-  try { const state = JSON.parse(await readFile(STATE_FILE, "utf8")); return new Set(Array.isArray(state.completed) ? state.completed : []); }
-  catch { return new Set(); }
-}
-async function saveState(completed) {
-  const temp = STATE_FILE + ".tmp";
-  await writeFile(temp, JSON.stringify({ updatedAt: new Date().toISOString(), completed: [...completed] }, null, 2));
-  await rename(temp, STATE_FILE);
 }
 async function transcribe(audioPath) {
   const bytes = await readFile(audioPath);
@@ -159,26 +151,51 @@ async function processWindow(fileName, completed) {
   const moments = await analyze(signaledSegments, transcription.duration ?? duration);
   const clips = await renderClips(videoPath, fileName, moments);
   await writeFile(path.join(OUTPUT_DIR, path.parse(fileName).name + ".json"), JSON.stringify({ source: videoPath, analyzedAt: new Date().toISOString(), transcriptSegments: transcription.segments.length, audioSignals: "rms-and-peak-per-transcript-segment", sceneChanges: sceneTimes.length, selectedMoments: moments, renderedClips: clips }, null, 2));
-  completed.add(fileName); await saveState(completed);
   console.log(JSON.stringify({ event: "window_processed", fileName, transcriptSegments: transcription.segments.length, selected: moments.length, rendered: clips.length }));
 }
 async function main() {
   required(SESSION_ID,"SESSION_ID"); if (!/^[a-zA-Z0-9_-]{3,64}$/.test(SESSION_ID)) throw new Error("SESSION_ID inválido.");
   required(API_BASE,"VIRALCUT_API_BASE_URL"); required(ANALYSIS_KEY,"VIRALCUT_INTERNAL_API_KEY"); required(OPENAI_KEY,"OPENAI_API_KEY");
   if (!Number.isInteger(POLL_MS) || POLL_MS < 1000) throw new Error("VIRALCUT_PROCESS_POLL_MS deve ser pelo menos 1000.");
-  await mkdir(OUTPUT_DIR,{recursive:true}); const completed = await loadState();
-  console.log(JSON.stringify({ event:"window_processor_started",sessionId:SESSION_ID,pollMs:POLL_MS,completed:completed.size }));
-  let stopping = false; process.once("SIGINT",()=>{stopping=true;}); process.once("SIGTERM",()=>{stopping=true;});
-  while (!stopping) {
-    try {
-      const content = await readFile(path.join(SESSION_DIR,"windows.csv"),"utf8");
-      for (const line of content.split(/\r?\n/).filter(Boolean)) {
-        const [fileName] = parseCsvLine(line); if (!fileName || completed.has(fileName)) continue;
-        try { await processWindow(fileName,completed); }
-        catch(error) { console.error(JSON.stringify({event:"window_processing_failed",fileName,message:error.message})); break; }
+  await mkdir(OUTPUT_DIR,{recursive:true});
+  const lockDir = path.join(SESSION_DIR, ".processor-lock");
+  try { await mkdir(lockDir); }
+  catch (error) {
+    if (error.code === "EEXIST") throw new Error("Já existe um processador ativo para esta sessão. Se ele caiu, remova .processor-lock após confirmar que não está rodando.");
+    throw error;
+  }
+  let stopping = false;
+  process.once("SIGINT",()=>{stopping=true;}); process.once("SIGTERM",()=>{stopping=true;});
+  console.log(JSON.stringify({ event:"window_processor_started",sessionId:SESSION_ID,pollMs:POLL_MS }));
+  try {
+    while (!stopping) {
+      try {
+        const state = await loadWindowState(STATE_FILE);
+        const content = await readFile(path.join(SESSION_DIR,"windows.csv"),"utf8");
+        for (const line of content.split(/\r?\n/).filter(Boolean)) {
+          const [fileName] = parseCsvLine(line);
+          if (!fileName || !/^window-\d+\.mp4$/.test(path.basename(fileName))) continue;
+          if (!claimWindow(state,fileName)) continue;
+          await saveWindowState(STATE_FILE,state);
+          try {
+            await processWindow(fileName);
+            completeWindow(state,fileName);
+            await saveWindowState(STATE_FILE,state);
+            console.log(JSON.stringify({event:"window_queue_completed",fileName,queue:windowQueueSummary(state)}));
+          } catch(error) {
+            failWindow(state,fileName,error);
+            await saveWindowState(STATE_FILE,state);
+            console.error(JSON.stringify({event:"window_processing_failed",fileName,status:state.windows[fileName].status,attempts:state.windows[fileName].attempts,message:error.message,queue:windowQueueSummary(state)}));
+          }
+          if (stopping) break;
+        }
+      } catch(error) {
+        if (error.code !== "ENOENT") console.error(JSON.stringify({event:"queue_poll_failed",message:error.message}));
       }
-    } catch(error) { if (error.code !== "ENOENT") console.error(JSON.stringify({event:"manifest_read_failed",message:error.message})); }
-    await new Promise(resolve=>setTimeout(resolve,POLL_MS));
+      await new Promise(resolve=>setTimeout(resolve,POLL_MS));
+    }
+  } finally {
+    await rm(lockDir,{recursive:true,force:true});
   }
   console.log(JSON.stringify({event:"window_processor_stopped",sessionId:SESSION_ID}));
 }
