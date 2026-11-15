@@ -27,6 +27,10 @@ The first AI-backed analysis endpoint is available at `POST /api/ai/analyze-tran
 
 A persistent RTMP/RTMPS/SRT capture worker is available. It saves closed MP4 segments every 10 minutes by default. See [`docs/LIVE_CAPTURE.md`](docs/LIVE_CAPTURE.md). Run it with `npm run capture:live` after setting `LIVE_INPUT_URL` and `SESSION_ID`.
 
+## Automatic live-window processing
+
+The persistent `workers/process-windows.mjs` worker transcribes each closed segment, requests AI ranking, and renders selected vertical MP4 clips. Configure it using [`docs/WINDOW_PROCESSING.md`](docs/WINDOW_PROCESSING.md) and run `npm run process:windows` alongside the capture worker. A valid OpenAI transcription key and protected app endpoint are required.
+
 ## Roadmap
 
 1. Estrutura visual e experiência inicial.
