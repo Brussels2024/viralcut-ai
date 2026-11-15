@@ -24,16 +24,22 @@ export default function Home() {
   const [platform, setPlatform] = useState("YouTube");
   const [sourceUrl, setSourceUrl] = useState("");
   const [fileName, setFileName] = useState("");
+  const [fileInfo, setFileInfo] = useState("");
   const [notice, setNotice] = useState("");
 
   function handleFile(file?: File) {
     if (!file) return;
+    const allowedTypes = ["video/mp4", "video/quicktime", "video/webm", "video/x-matroska"];
+    if (!allowedTypes.includes(file.type)) { setFileName(""); setFileInfo(""); setNotice("Formato não suportado. Envie MP4, MOV, WebM ou MKV."); return; }
+    if (file.size <= 0 || file.size > 2 * 1024 * 1024 * 1024) { setFileName(""); setFileInfo(""); setNotice("O vídeo precisa ter até 2 GB."); return; }
     setFileName(file.name);
-    setNotice("");
+    setFileInfo((file.size / (1024 * 1024)).toFixed(1) + " MB");
+    setNotice("Arquivo validado no navegador. O envio e a análise automática ainda não estão habilitados.");
   }
 
   function handleStart() {
-    if (mode === "recording" && !sourceUrl.trim() && !fileName) {
+    if (mode === "live") { setNotice("A captura de lives ainda não está conectada. A integração OBS/RTMP será implementada posteriormente."); return; }
+    if (!fileName && !sourceUrl.trim()) {
       setNotice("Adicione um link ou selecione um vídeo para começar.");
       return;
     }
@@ -41,7 +47,7 @@ export default function Home() {
       setNotice("Informe o endereço da transmissão ou da fonte compatível.");
       return;
     }
-    setNotice("Sua fonte foi recebida na interface. A etapa de análise por IA será conectada na próxima fase.");
+    setNotice(fileName ? "Pré-verificação concluída. O upload e a análise ainda aguardam a configuração de autenticação e armazenamento no servidor." : "A importação automática por link ainda não está disponível. Selecione um arquivo de vídeo compatível.");
   }
 
   return (
@@ -119,7 +125,7 @@ export default function Home() {
             <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-violet-300/25 bg-violet-400/[0.035] px-5 py-7 text-center transition hover:border-violet-300/50 hover:bg-violet-400/[0.07]">
               <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200"><CloudUpload size={22} /></span>
               <span className="text-sm font-medium">{fileName || "Arraste seu vídeo ou clique para selecionar"}</span>
-              <span className="mt-1 text-xs text-zinc-500">MP4, MOV ou arquivo de vídeo compatível</span>
+              <span className="mt-1 text-xs text-zinc-500">MP4, MOV, WebM ou MKV · até 2 GB</span>
               <input type="file" accept="video/*" className="hidden" onChange={(event) => handleFile(event.target.files?.[0])} />
             </label>
           )}
