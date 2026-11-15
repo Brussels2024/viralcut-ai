@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { readFile, mkdir, stat, writeFile, rm } from "node:fs/promises";
+import { readFile, mkdir, rename, stat, writeFile, rm } from "node:fs/promises";
 import { loadWindowState, saveWindowState, claimWindow, completeWindow, failWindow, windowQueueSummary } from "./window-state.mjs";
 import path from "node:path";
 import process from "node:process";
@@ -157,6 +157,7 @@ async function main() {
   required(SESSION_ID,"SESSION_ID"); if (!/^[a-zA-Z0-9_-]{3,64}$/.test(SESSION_ID)) throw new Error("SESSION_ID inválido.");
   required(API_BASE,"VIRALCUT_API_BASE_URL"); required(ANALYSIS_KEY,"VIRALCUT_INTERNAL_API_KEY"); required(OPENAI_KEY,"OPENAI_API_KEY");
   if (!Number.isInteger(POLL_MS) || POLL_MS < 1000) throw new Error("VIRALCUT_PROCESS_POLL_MS deve ser pelo menos 1000.");
+  await mkdir(SESSION_DIR,{recursive:true});
   await mkdir(OUTPUT_DIR,{recursive:true});
   const lockDir = path.join(SESSION_DIR, ".processor-lock");
   try { await mkdir(lockDir); }
