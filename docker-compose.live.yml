@@ -1,0 +1,37 @@
+services:
+  live-capture:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    env_file:
+      - .env.live
+    environment:
+      VIRALCUT_CAPTURE_DIR: /data/captures
+      FFMPEG_PATH: ffmpeg
+    volumes:
+      - viralcut-media:/data
+    command: ["node", "workers/live-capture.mjs"]
+    stop_grace_period: 30s
+
+  window-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    env_file:
+      - .env.live
+    environment:
+      VIRALCUT_CAPTURE_DIR: /data/captures
+      VIRALCUT_CLIPS_DIR: /data/clips
+      FFMPEG_PATH: ffmpeg
+      FFPROBE_PATH: ffprobe
+    volumes:
+      - viralcut-media:/data
+    command: ["node", "workers/process-windows.mjs"]
+    depends_on:
+      - live-capture
+    stop_grace_period: 30s
+
+volumes:
+  viralcut-media:
