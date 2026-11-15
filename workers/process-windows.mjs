@@ -68,6 +68,23 @@ async function transcribe(audioPath) {
   return { segments, duration: Number(payload.duration) || undefined };
 }
 
+
+function runDiagnostic(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ["ignore", "ignore", "pipe"] });
+    let stderr = "";
+    child.stderr.setEncoding("utf8").on("data", chunk => { stderr += chunk; });
+    child.once("error", reject);
+    child.once("close", code => code === 0 ? resolve(stderr) : reject(new Error(`${path.basename(command)} saiu com código ${code}: ${stderr.slice(-2500)}`)));
+  });
+}
+function attachSceneSignals(segments, sceneTimes) {
+  return segments.map(segment => {
+    const changes = sceneTimes.filter(time => time >= segment.start && time < segment.end).length;
+    return { ...segment, video: { sceneChange: Number(Math.min(1, changes / 4).toFixed(3)) } };
+  });
+}
+
 function attachAudioSignals(segments, pcm) {
   const sampleRate = 16000;
   const totalSamples = Math.floor(pcm.length / 2);
@@ -135,10 +152,13 @@ async function processWindow(fileName, completed) {
   await run(FFMPEG, ["-hide_banner","-nostdin","-y","-i",videoPath,"-vn","-ac","1","-ar","16000","-f","s16le",rawAudioPath]);
   const transcription = await transcribe(audioPath);
   const pcm = await readFile(rawAudioPath);
-  const signaledSegments = attachAudioSignals(transcription.segments, pcm);
+  const audioSignaled = attachAudioSignals(transcription.segments, pcm);
+  const sceneLog = await runDiagnostic(FFMPEG, ["-hide_banner","-nostdin","-i",videoPath,"-vf","select='gt(scene,0.30)',showinfo","-an","-f","null","-"]);
+  const sceneTimes = [...sceneLog.matchAll(/pts_time:([0-9.]+)/g)].map(match => Number(match[1])).filter(Number.isFinite);
+  const signaledSegments = attachSceneSignals(audioSignaled, sceneTimes);
   const moments = await analyze(signaledSegments, transcription.duration ?? duration);
   const clips = await renderClips(videoPath, fileName, moments);
-  await writeFile(path.join(OUTPUT_DIR, path.parse(fileName).name + ".json"), JSON.stringify({ source: videoPath, analyzedAt: new Date().toISOString(), transcriptSegments: transcription.segments.length, audioSignals: "rms-and-peak-per-transcript-segment", selectedMoments: moments, renderedClips: clips }, null, 2));
+  await writeFile(path.join(OUTPUT_DIR, path.parse(fileName).name + ".json"), JSON.stringify({ source: videoPath, analyzedAt: new Date().toISOString(), transcriptSegments: transcription.segments.length, audioSignals: "rms-and-peak-per-transcript-segment", sceneChanges: sceneTimes.length, selectedMoments: moments, renderedClips: clips }, null, 2));
   completed.add(fileName); await saveState(completed);
   console.log(JSON.stringify({ event: "window_processed", fileName, transcriptSegments: transcription.segments.length, selected: moments.length, rendered: clips.length }));
 }
