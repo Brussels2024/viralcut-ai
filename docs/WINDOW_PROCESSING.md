@@ -1,6 +1,6 @@
 # Automatic live-window processing
 
-A persistent worker consumes the CSV manifest created by `live-capture.mjs`. For every closed MP4 window it probes duration, extracts mono 16 kHz MP3, transcribes with timestamped segments using the OpenAI audio transcription API, submits the transcript to the protected ViralCut AI endpoint, and renders selected moments as 1080×1920 MP4 files.
+A persistent worker consumes the CSV manifest created by `live-capture.mjs`. For every closed MP4 window it probes duration, extracts mono 16 kHz MP3, transcribes with timestamped segments using the OpenAI audio transcription API, measures RMS energy and peak level for each transcript interval from decoded PCM audio, submits the transcript and measured audio signals to the protected ViralCut AI endpoint, and renders selected moments as 1080×1920 MP4 files.
 
 ## Required environment
 
