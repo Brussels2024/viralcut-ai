@@ -50,11 +50,11 @@ export default function Home() {
     try {
       const parsed = new URL(demoUrl.trim());
       if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("invalid");
-      const host = parsed.hostname.replace(/^www\\./, "").toLowerCase();
+      const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
       let videoId = "";
       if (host === "youtu.be") videoId = parsed.pathname.split("/").filter(Boolean)[0] || "";
       if (host === "youtube.com" || host === "m.youtube.com") {
-        videoId = parsed.searchParams.get("v") || parsed.pathname.match(/\\/(?:shorts|embed|live)\\/([^/?]+)/)?.[1] || "";
+        videoId = parsed.searchParams.get("v") || parsed.pathname.match(/\/(?:shorts|embed|live)\/([^/?]+)/)?.[1] || "";
       }
       if (videoId && /^[a-zA-Z0-9_-]{6,}$/.test(videoId)) {
         setDemoSource("https://www.youtube-nocookie.com/embed/" + videoId);
@@ -63,13 +63,13 @@ export default function Home() {
       }
       if (host === "vimeo.com" || host === "player.vimeo.com") {
         const id = parsed.pathname.split("/").filter(Boolean).pop() || "";
-        if (/^\\d+$/.test(id)) {
+        if (/^\d+$/.test(id)) {
           setDemoSource("https://player.vimeo.com/video/" + id);
           setDemoKind("vimeo");
           return;
         }
       }
-      if (/\\.(mp4|webm|mov|m4v)$/i.test(parsed.pathname)) {
+      if (/\.(mp4|webm|mov|m4v)$/i.test(parsed.pathname)) {
         setDemoSource(parsed.toString());
         setDemoKind("file");
         return;
