@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { claimWindow, completeWindow, failWindow, windowQueueSummary } from "./window-state.mjs";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { claimWindow, completeWindow, failWindow, loadWindowState, saveWindowState, windowQueueSummary } from "./window-state.mjs";
 
 describe("durable live-window queue", () => {
   it("claims a new window and prevents a second active claim", () => {
@@ -47,3 +50,19 @@ describe("durable live-window queue", () => {
     expect(state.windows[name].status).toBe("retry");
   });
 });
+
+  it("persists queue state atomically and reloads it after restart", async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), "viralcut-queue-"));
+    const file = path.join(directory, "processed-windows.json");
+    try {
+      const state = { version: 1, windows: {} };
+      claimWindow(state, "window-000005.mp4", 1_000);
+      failWindow(state, "window-000005.mp4", new Error("temporary"), 2_000);
+      await saveWindowState(file, state);
+      const restored = await loadWindowState(file);
+      expect(restored.windows["window-000005.mp4"].status).toBe("retry");
+      expect(JSON.parse(await readFile(file, "utf8")).version).toBe(1);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
