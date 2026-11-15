@@ -38,3 +38,20 @@ describe("validateAiMoments", () => {
     expect(result).toEqual([]);
   });
 });
+
+
+it("limits each analysis to the ten highest-scoring non-overlapping moments", () => {
+  const moments = Array.from({ length: 11 }, (_, index) => ({
+    startSeconds: index * 100,
+    endSeconds: index * 100 + 70,
+    score: 100 - index,
+    title: `Momento ${index + 1}`,
+    hook: "Gancho",
+    description: "Descrição",
+    hashtags: [],
+    reasons: ["teste"]
+  }));
+  const result = validateAiMoments(JSON.stringify({ moments }));
+  expect(result).toHaveLength(10);
+  expect(result.some(moment => moment.title === "Momento 11")).toBe(false);
+});
