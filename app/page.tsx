@@ -14,6 +14,8 @@ import {
   Sparkles,
   Upload,
   Video,
+  Play,
+  ExternalLink,
   WandSparkles
 } from "lucide-react";
 
@@ -26,6 +28,10 @@ export default function Home() {
   const [fileName, setFileName] = useState("");
   const [fileInfo, setFileInfo] = useState("");
   const [notice, setNotice] = useState("");
+  const [demoUrl, setDemoUrl] = useState("");
+  const [demoSource, setDemoSource] = useState("");
+  const [demoKind, setDemoKind] = useState<"youtube" | "vimeo" | "file" | "">("");
+  const [demoError, setDemoError] = useState("");
 
   function handleFile(file?: File) {
     if (!file) return;
@@ -35,6 +41,43 @@ export default function Home() {
     setFileName(file.name);
     setFileInfo((file.size / (1024 * 1024)).toFixed(1) + " MB");
     setNotice("Arquivo validado no navegador. O envio e a análise automática ainda não estão habilitados.");
+  }
+
+  function handleDemoPreview() {
+    setDemoError("");
+    setDemoSource("");
+    setDemoKind("");
+    try {
+      const parsed = new URL(demoUrl.trim());
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("invalid");
+      const host = parsed.hostname.replace(/^www\\./, "").toLowerCase();
+      let videoId = "";
+      if (host === "youtu.be") videoId = parsed.pathname.split("/").filter(Boolean)[0] || "";
+      if (host === "youtube.com" || host === "m.youtube.com") {
+        videoId = parsed.searchParams.get("v") || parsed.pathname.match(/\\/(?:shorts|embed|live)\\/([^/?]+)/)?.[1] || "";
+      }
+      if (videoId && /^[a-zA-Z0-9_-]{6,}$/.test(videoId)) {
+        setDemoSource("https://www.youtube-nocookie.com/embed/" + videoId);
+        setDemoKind("youtube");
+        return;
+      }
+      if (host === "vimeo.com" || host === "player.vimeo.com") {
+        const id = parsed.pathname.split("/").filter(Boolean).pop() || "";
+        if (/^\\d+$/.test(id)) {
+          setDemoSource("https://player.vimeo.com/video/" + id);
+          setDemoKind("vimeo");
+          return;
+        }
+      }
+      if (/\\.(mp4|webm|mov|m4v)$/i.test(parsed.pathname)) {
+        setDemoSource(parsed.toString());
+        setDemoKind("file");
+        return;
+      }
+      throw new Error("unsupported");
+    } catch {
+      setDemoError("Cole um link público do YouTube, Vimeo ou um arquivo MP4/WebM/MOV acessível pela internet.");
+    }
   }
 
   function handleStart() {
@@ -137,6 +180,40 @@ export default function Home() {
           </button>
           <p className="mt-3 text-center text-[11px] leading-5 text-zinc-600">Ao continuar, use apenas conteúdos que você tem autorização para processar.</p>
         </div>
+
+        <section id="ver-cortes" className="mx-auto mt-20 max-w-5xl scroll-mt-8">
+          <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-violet-300">Veja na prática</p>
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Veja alguns cortes</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Cole o link de um vídeo público para assistir aqui mesmo. Você pode testar com um vídeo do YouTube, um Short, Vimeo ou um arquivo de vídeo hospedado.</p>
+            </div>
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-400"><Play size={13} className="text-violet-300" /> Prévia interativa</span>
+          </div>
+          <div className="grid gap-5 rounded-3xl border border-white/10 bg-[#100e1b]/90 p-4 shadow-2xl shadow-violet-950/20 sm:grid-cols-[1fr_0.9fr] sm:p-6">
+            <div className="flex flex-col justify-center">
+              <label htmlFor="demo-video-link" className="mb-2 text-xs font-medium text-zinc-300">Link do vídeo ou corte</label>
+              <input id="demo-video-link" type="url" value={demoUrl} onChange={(event) => setDemoUrl(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") handleDemoPreview(); }} placeholder="https://youtube.com/shorts/..." className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-violet-400/60" />
+              {demoError && <p role="alert" className="mt-3 text-xs text-rose-300">{demoError}</p>}
+              <button type="button" onClick={handleDemoPreview} className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-500"><Play size={16} /> Assistir prévia</button>
+              <p className="mt-3 text-xs leading-5 text-zinc-500">A prévia abre o conteúdo original. A geração automática de cortes será liberada quando o processamento e o armazenamento estiverem configurados.</p>
+              {demoSource && <a href={demoUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-violet-300 hover:text-violet-200">Abrir vídeo original <ExternalLink size={13} /></a>}
+            </div>
+            <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black">
+              {demoSource && demoKind === "file" ? (
+                <video key={demoSource} src={demoSource} controls playsInline preload="metadata" className="max-h-[520px] w-full object-contain" />
+              ) : demoSource && (demoKind === "youtube" || demoKind === "vimeo") ? (
+                <iframe key={demoSource} src={demoSource} title="Prévia do vídeo" className="aspect-video h-full min-h-[280px] w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />
+              ) : (
+                <div className="px-6 text-center">
+                  <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-300/20 bg-violet-400/10 text-violet-200"><Clapperboard size={25} /></span>
+                  <p className="text-sm font-medium text-zinc-300">Seu vídeo aparece aqui</p>
+                  <p className="mt-2 text-xs leading-5 text-zinc-600">Cole um link acima e toque em “Assistir prévia”.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
         <div className="mx-auto mt-16 grid max-w-4xl gap-4 sm:grid-cols-3">
           <Feature icon={<AudioLines size={19} />} title="Momentos de impacto" description="Identificação de falas, reações e picos de engajamento." />
