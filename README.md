@@ -29,7 +29,7 @@ A persistent RTMP/RTMPS/SRT capture worker is available. It saves closed MP4 seg
 
 ## Automatic live-window processing
 
-The persistent `workers/process-windows.mjs` worker transcribes each closed segment, requests AI ranking, and renders selected vertical MP4 clips. Configure it using [`docs/WINDOW_PROCESSING.md`](docs/WINDOW_PROCESSING.md) and run `npm run process:windows` alongside the capture worker. A valid OpenAI transcription key and protected app endpoint are required.
+The persistent `workers/process-windows.mjs` worker transcribes each closed segment, requests AI ranking, and renders selected vertical MP4 clips. Its durable queue tracks processing leases, retries transient failures with exponential backoff, moves repeatedly failing windows to a dead state, and resumes after restarts. Configure it using [`docs/WINDOW_PROCESSING.md`](docs/WINDOW_PROCESSING.md) and run `npm run process:windows` alongside the capture worker. A valid OpenAI transcription key, protected app endpoint, FFmpeg, and persistent shared storage are required. This is a worker implementation; a live end-to-end run still requires credentials, an ingest source, and a persistent host.
 
 ## Roadmap
 
@@ -43,4 +43,4 @@ The persistent `workers/process-windows.mjs` worker transcribes each closed segm
 
 ## Observação
 
-A interface inicial é um ponto de partida. O processamento real de vídeo e a análise por IA ainda precisam ser implementados e conectados a serviços de backend.
+A interface web ainda é um protótipo. Os trabalhadores de ingestão ao vivo e processamento por janela estão implementados, mas nenhuma transmissão real foi validada em produção. Transcrição, análise por IA e armazenamento exigem credenciais e infraestrutura persistente configuradas separadamente.
