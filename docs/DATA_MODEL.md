@@ -1,6 +1,9 @@
 # Data model and tenant isolation
 
-The initial PostgreSQL schema is in `migrations/0001_initial.sql`.
+The PostgreSQL schema is defined in ordered migrations:
+
+- `migrations/0001_initial.sql`: core users, workspaces, projects, assets, jobs, transcripts, clip candidates, renders, usage, webhook events, and row-level security.
+- `migrations/0002_tenant_integrity.sql`: normalized email uniqueness and composite membership constraints for project creators and usage attribution.
 
 ## Model
 
@@ -28,7 +31,7 @@ Workspace-owned tables have PostgreSQL row-level security enabled. Every server-
 
 Use a database role that does not own the tables and does not have `BYPASSRLS`. Never accept a workspace ID from an untrusted browser request without checking membership. Do not use a pooled connection's session-level setting; use transaction-local state.
 
-The migration deliberately does not create an authentication provider, database connection, or credentials. Those are separate integration steps. Do not run this migration against production until the database provider and migration workflow are configured and a backup/restore path exists.
+The tenant-integrity migration also enforces that a project's creator belongs to its workspace and that attributed usage events cannot reference a user from another workspace. Email uniqueness is case/whitespace insensitive. Resolve any pre-existing duplicate normalized emails before applying migration 0002.
 
 ## Server-side database access
 
@@ -37,3 +40,7 @@ The server-only PostgreSQL client is in `lib/db/client.ts`. It reads `DATABASE_U
 Use `listUserWorkspaces(userId)` to resolve the signed-in user's workspaces. Use `withWorkspaceTransaction(userId, workspaceId, callback)` for tenant data. The helper verifies membership before setting the transaction-local RLS workspace context. Only pass the authenticated user ID from the trusted session layer; never trust a user ID supplied by the browser.
 
 The health endpoint's `capabilities.database` field reports whether a connection string is configured; it is not a live connectivity check.
+
+## Deployment status
+
+These migration files are source-controlled but have not been applied to a production database. The project still needs its own dedicated PostgreSQL instance, credentials, migration execution, and a tested backup/restore path. Do not reuse the database of another application.
