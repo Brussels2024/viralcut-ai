@@ -19,7 +19,7 @@ const aiMomentSchema = z.object({
 });
 
 const aiResponseSchema = z.object({
-  moments: z.array(aiMomentSchema).max(8)
+  moments: z.array(aiMomentSchema).max(10)
 });
 
 export type AiMoment = z.infer<typeof aiMomentSchema>;
@@ -49,7 +49,7 @@ export function validateAiMoments(text: string, videoDuration?: number): AiMomen
       moment.startSeconds < item.endSeconds && moment.endSeconds > item.startSeconds
     );
     if (!overlaps) selected.push(moment);
-    if (selected.length === 8) break;
+    if (selected.length === 10) break;
   }
 
   return selected.sort((a, b) => a.startSeconds - b.startSeconds);
@@ -77,7 +77,7 @@ export async function analyzeTranscriptMoments(
       "Prefira poucos momentos realmente fortes a preencher uma quantidade artificial. Um bom corte precisa ter contexto suficiente, gancho claro e payoff ou conclusão.",
       "Cada corte deve durar entre 60 e 90 segundos e usar os timestamps reais dos segmentos."
     ].join("\n"),
-    prompt: `Analise esta transcrição em português e encontre no máximo 8 momentos fortes para cortes verticais.
+    prompt: `Analise esta transcrição em português e encontre no máximo 10 momentos fortes para cortes verticais.
 ${videoDuration ? `Duração total do vídeo: ${videoDuration} segundos.` : ""}
 Critérios: gancho nos primeiros segundos, história compreensível fora do contexto, surpresa, opinião forte, humor, tensão, informação útil, virada ou conclusão. Dê notas relativas de 0 a 100. Não escolha trechos fracos apenas para completar a lista.
 Retorne SOMENTE JSON válido neste formato:
