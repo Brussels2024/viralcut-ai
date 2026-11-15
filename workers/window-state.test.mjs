@@ -49,7 +49,6 @@ describe("durable live-window queue", () => {
     expect(Date.parse(state.windows[name].nextAttemptAt) - 10_000).toBe(30_000);
     expect(state.windows[name].status).toBe("retry");
   });
-});
 
   it("persists queue state atomically and reloads it after restart", async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), "viralcut-queue-"));
@@ -66,3 +65,4 @@ describe("durable live-window queue", () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
+});
