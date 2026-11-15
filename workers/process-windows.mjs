@@ -67,6 +67,36 @@ async function transcribe(audioPath) {
   if (!segments.length) throw new Error("Transcrição sem segmentos com timestamps.");
   return { segments, duration: Number(payload.duration) || undefined };
 }
+
+function attachAudioSignals(segments, pcm) {
+  const sampleRate = 16000;
+  const totalSamples = Math.floor(pcm.length / 2);
+  const clamp = value => Math.max(0, Math.min(1, value));
+  return segments.map(segment => {
+    const from = Math.max(0, Math.floor(segment.start * sampleRate));
+    const to = Math.min(totalSamples, Math.ceil(segment.end * sampleRate));
+    if (to <= from) return segment;
+    let squares = 0;
+    let peak = 0;
+    for (let index = from; index < to; index++) {
+      const sample = pcm.readInt16LE(index * 2) / 32768;
+      const magnitude = Math.abs(sample);
+      squares += sample * sample;
+      if (magnitude > peak) peak = magnitude;
+    }
+    const rms = Math.sqrt(squares / (to - from));
+    const rmsDb = 20 * Math.log10(Math.max(rms, 0.000001));
+    const peakDb = 20 * Math.log10(Math.max(peak, 0.000001));
+    return {
+      ...segment,
+      audio: {
+        energy: Number(clamp((rmsDb + 55) / 43).toFixed(3)),
+        excitement: Number(clamp((peakDb + 50) / 47).toFixed(3))
+      }
+    };
+  });
+}
+
 async function analyze(segments, duration) {
   const response = await fetch(`${API_BASE}/api/ai/analyze-transcript`, {
     method: "POST",
@@ -101,10 +131,14 @@ async function processWindow(fileName, completed) {
   const tempDir = path.join(SESSION_DIR, ".processing"); await mkdir(tempDir, { recursive: true });
   const audioPath = path.join(tempDir, path.parse(fileName).name + ".mp3");
   await run(FFMPEG, ["-hide_banner","-nostdin","-y","-i",videoPath,"-vn","-ac","1","-ar","16000","-b:a","48k",audioPath]);
+  const rawAudioPath = path.join(tempDir, path.parse(fileName).name + ".s16le");
+  await run(FFMPEG, ["-hide_banner","-nostdin","-y","-i",videoPath,"-vn","-ac","1","-ar","16000","-f","s16le",rawAudioPath]);
   const transcription = await transcribe(audioPath);
-  const moments = await analyze(transcription.segments, transcription.duration ?? duration);
+  const pcm = await readFile(rawAudioPath);
+  const signaledSegments = attachAudioSignals(transcription.segments, pcm);
+  const moments = await analyze(signaledSegments, transcription.duration ?? duration);
   const clips = await renderClips(videoPath, fileName, moments);
-  await writeFile(path.join(OUTPUT_DIR, path.parse(fileName).name + ".json"), JSON.stringify({ source: videoPath, analyzedAt: new Date().toISOString(), transcriptSegments: transcription.segments.length, selectedMoments: moments, renderedClips: clips }, null, 2));
+  await writeFile(path.join(OUTPUT_DIR, path.parse(fileName).name + ".json"), JSON.stringify({ source: videoPath, analyzedAt: new Date().toISOString(), transcriptSegments: transcription.segments.length, audioSignals: "rms-and-peak-per-transcript-segment", selectedMoments: moments, renderedClips: clips }, null, 2));
   completed.add(fileName); await saveState(completed);
   console.log(JSON.stringify({ event: "window_processed", fileName, transcriptSegments: transcription.segments.length, selected: moments.length, rendered: clips.length }));
 }
